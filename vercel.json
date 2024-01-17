@@ -1,0 +1,6 @@
+{
+    "routes": [
+      { "src": "/admin/post", "dest": "/path/to/your/server/handler" }
+    ]
+  }
+  
