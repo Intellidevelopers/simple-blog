@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Blog</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <h1>Simple Blog</h1>
+
+    <div id="blog-posts">
+        <!-- Blog posts will be dynamically added here -->
+    </div>
+
+    <form id="postForm" action="/admin/post" method="post">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required><br>
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" required></textarea><br>
+        <label for="image">Image URL:</label>
+        <input type="text" id="image" name="image"><br>
+        <button type="submit">Post</button>
+    </form>
+
+    <div id="updateFormContainer" style="display: none;">
+        <h2>Update Post</h2>
+        <form id="updateForm">
+            <input type="hidden" id="postId" name="postId">
+            <label for="updateTitle">Title:</label>
+            <input type="text" id="updateTitle" name="updateTitle" required><br>
+            <label for="updateDescription">Description:</label>
+            <textarea id="updateDescription" name="updateDescription" required></textarea><br>
+            <label for="updateImage">Image URL:</label>
+            <input type="text" id="updateImage" name="updateImage"><br>
+            <button type="button" onclick="updatePost()">Update</button>
+            <button type="button" onclick="cancelUpdate()">Cancel Update</button>
+        </form>
+    </div>
+
+    <div id="deleteFormContainer" style="display: none;">
+        <h2>Delete Post</h2>
+        <button type="button" onclick="deletePost()">Delete Post</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/server.js/posts')
+                .then(response => response.json())
+                .then(posts => {
+                    const blogPostsContainer = document.getElementById('blog-posts');
+
+                    posts.forEach(post => {
+                        const postElement = document.createElement('div');
+                        postElement.classList.add('blog-post');
+
+                        postElement.innerHTML = `
+                            <h2>${post.title}</h2>
+                            <p>${post.description}</p>
+                            <img src="${post.image}" alt="Post Image">
+                            <button onclick="editPost(${post.id})">Edit</button>
+                            <button onclick="confirmDelete(${post.id})">Delete</button>
+                        `;
+
+                        blogPostsContainer.appendChild(postElement);
+                    });
+                })
+                .catch(error => console.error('Error fetching posts:', error));
+        });
+
+        function editPost(postId) {
+            const post = getPostById(postId);
+
+            if (post) {
+                document.getElementById('updateFormContainer').style.display = 'block';
+                document.getElementById('deleteFormContainer').style.display = 'none';
+
+                document.getElementById('postId').value = postId;
+                document.getElementById('updateTitle').value = post.title;
+                document.getElementById('updateDescription').value = post.description;
+                document.getElementById('updateImage').value = post.image;
+            }
+        }
+
+        function confirmDelete(postId) {
+            const post = getPostById(postId);
+
+            if (post) {
+                document.getElementById('deleteFormContainer').style.display = 'block';
+                document.getElementById('updateFormContainer').style.display = 'none';
+
+                document.getElementById('postId').value = postId;
+                // Implement logic to confirm deletion, e.g., show a confirmation message
+            }
+        }
+
+        function updatePost() {
+            const postId = document.getElementById('postId').value;
+            const updateTitle = document.getElementById('updateTitle').value;
+            const updateDescription = document.getElementById('updateDescription').value;
+            const updateImage = document.getElementById('updateImage').value;
+
+            fetch(`/server.js/posts/${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: updateTitle,
+                    description: updateDescription,
+                    image: updateImage,
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+
+                // Update the post on the frontend
+                const postElement = document.querySelector(`.blog-post button[onclick*="editPost(${postId})"]`).parentNode;
+                postElement.querySelector('h2').innerText = updateTitle;
+                postElement.querySelector('p').innerText = updateDescription;
+                postElement.querySelector('img').setAttribute('src', updateImage);
+
+                // Hide the update form
+                cancelUpdate();
+            })
+            .catch(error => console.error('Error updating post:', error));
+        }
+
+        function deletePost() {
+            const postId = document.getElementById('postId').value;
+
+            fetch(`/server.js/posts/${postId}`, {
+                method: 'DELETE',
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+
+                // Remove the deleted post from the frontend
+                const postElement = document.querySelector(`.blog-post button[onclick*="editPost(${postId})"]`).parentNode;
+                postElement.remove();
+                
+                // Hide the delete form
+                document.getElementById('deleteFormContainer').style.display = 'none';
+            })
+            .catch(error => console.error('Error deleting post:', error));
+        }
+
+        function cancelUpdate() {
+            document.getElementById('updateTitle').value = '';
+            document.getElementById('updateDescription').value = '';
+            document.getElementById('updateImage').value = '';
+            document.getElementById('updateFormContainer').style.display = 'none';
+        }
+
+        function getPostById(postId) {
+            // Function to retrieve a post by its ID from the fetched posts
+            const postsContainer = document.getElementById('blog-posts');
+            const posts = Array.from(postsContainer.getElementsByClassName('blog-post'));
+
+            const postElement = posts.find(postElement => {
+                const editButton = postElement.querySelector('button[onclick*="editPost"]');
+                return editButton && editButton.onclick.toString().includes(postId);
+            });
+
+            if (postElement) {
+                const post = {
+                    id: parseInt(postId),
+                    title: postElement.querySelector('h2').innerText,
+                    description: postElement.querySelector('p').innerText,
+                    image: postElement.querySelector('img').getAttribute('src'),
+                };
+                return post;
+            } else {
+                return null;
+            }
+        }
+    </script>
+</body>
+</html>
