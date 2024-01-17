@@ -24,9 +24,9 @@ try {
 posts.forEach((post, index) => post.id = index + 1);
 
 app.post('/admin/post', (req, res) => {
-    const { title, description, image, price } = req.body;
+    const { title, description, image } = req.body;
 
-    const post = { id: posts.length + 1, title, description, image,price };
+    const post = { id: posts.length + 1, title, description, image };
     posts.push(post);
 
     fs.writeFile(postsFilePath, JSON.stringify(posts), (err) => {
@@ -44,7 +44,7 @@ app.get('/server.js/posts', (req, res) => {
 
 app.put('/server.js/posts/:id', (req, res) => {
     const postId = parseInt(req.params.id);
-    const { title, description, image, price } = req.body;
+    const { title, description, image } = req.body;
 
     const postToUpdate = posts.find(post => post.id === postId);
 
@@ -52,7 +52,6 @@ app.put('/server.js/posts/:id', (req, res) => {
         postToUpdate.title = title;
         postToUpdate.description = description;
         postToUpdate.image = image;
-        postToUpdate.price = price;
 
         fs.writeFile(postsFilePath, JSON.stringify(posts), (err) => {
             if (err) {
